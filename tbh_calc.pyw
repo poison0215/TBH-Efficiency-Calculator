@@ -1099,10 +1099,39 @@ class TBHApp(tk.Tk):
         self.tracking = False
         self.destroy()
 
+    def report_callback_exception(self, exc, val, tb):
+        """tkinter 回呼中的未捕捉例外 → 寫入記錄檔 + 顯示訊息"""
+        _log_crash(exc, val, tb)
+
 
 # ════════════════════════════════════════════════════════════════
 
+import traceback
+
+def _log_crash(exc_type, exc_val, exc_tb):
+    """把錯誤寫到 exe 旁邊的 error_log.txt，並嘗試顯示訊息框"""
+    try:
+        path = os.path.join(BASE_DIR, "error_log.txt")
+        with open(path, "a", encoding="utf-8") as f:
+            f.write("=" * 50 + "\n")
+            f.write(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + "\n")
+            traceback.print_exception(exc_type, exc_val, exc_tb, file=f)
+            f.write("\n")
+    except Exception:
+        pass
+    try:
+        from tkinter import messagebox as _mb
+        _mb.showerror("錯誤 / Error",
+                      f"程式發生錯誤，詳情已寫入 error_log.txt：\n\n"
+                      f"The app hit an error, details saved to error_log.txt:\n\n"
+                      f"{exc_type.__name__}: {exc_val}")
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
+    # 全域未捕捉例外也寫入記錄檔
+    sys.excepthook = _log_crash
     if not DEPS_OK:
         root = tk.Tk()
         root.withdraw()
@@ -1116,4 +1145,7 @@ if __name__ == "__main__":
         )
         root.destroy()
     else:
-        TBHApp().mainloop()
+        try:
+            TBHApp().mainloop()
+        except Exception:
+            _log_crash(*sys.exc_info())
