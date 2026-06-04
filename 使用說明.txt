@@ -1,5 +1,5 @@
 ========================================
- TBH 塔斯克巴·英雄 效率計算機（Lite 版）
+ TBH 塔斯克巴·英雄 效率計算機
 ========================================
 
 【如何啟動】
@@ -26,7 +26,7 @@
 
 ========================================
 【說明】
-本 Lite 版只用畫面 OCR 截圖讀取數值，不讀取遊戲記憶體、
+只用畫面 OCR 截圖讀取數值，不讀取遊戲記憶體、
 不做任何自動點擊或修改，純屬外部觀察的效率計算工具。
 監控時請保持遊戲畫面可見。
 ========================================
@@ -34,7 +34,7 @@
 
 
 ========================================
- TBH Task Bar Hero - Efficiency Calculator (Lite)
+ TBH Task Bar Hero - Efficiency Calculator
 ========================================
 
 [How to Launch]
@@ -62,7 +62,7 @@ Double-click "TBH效率計算機.exe". No Python installation needed.
 
 ========================================
 [Notes]
-This Lite version only reads values via on-screen OCR. It does NOT
+This version only reads values via on-screen OCR. It does NOT
 read game memory, does NOT auto-click, and makes NO modifications -
 it is purely an external observation / efficiency calculator tool.
 Keep the game screen visible while monitoring.
