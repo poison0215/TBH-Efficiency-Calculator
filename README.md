@@ -7,6 +7,25 @@
 
 > **Lite 版**：只用畫面 OCR 截圖讀取數值，**不讀取遊戲記憶體、不自動點擊、不做任何修改**，純屬外部觀察工具。
 
+## ⬇️ 下載
+
+**[👉 點此下載最新版 exe（Releases）](https://github.com/poison0215/TBH-Efficiency-Calculator/releases/latest)**
+
+下載 `TBH-Efficiency-Calculator-vX.X.X.zip` → 解壓縮 → 雙擊 `TBH效率計算機.exe`
+（已內含 Tesseract，**不需安裝 Python 或其他東西**）
+
+### ⚠️ 防毒軟體可能誤判
+
+本程式用 PyInstaller 打包，**Windows Defender 或防毒軟體可能誤報為病毒**。
+這是 PyInstaller 打包程式常見的**誤判（false positive）**，本工具不含任何惡意程式，
+原始碼完全公開可檢視。
+
+若被攔截，請：
+
+- **Windows SmartScreen**「不明發行者」警告 → 點「**更多資訊**」→「**仍要執行**」
+- **Windows Defender** 攔截 → 到「病毒與威脅防護」→「保護歷程記錄」→ 對該項目選「**允許**」
+- 不放心可自行用 `build.bat` 從原始碼打包，或直接 `python tbh_calc.pyw` 執行
+
 ## 功能
 
 - **即時監控**：金幣 / 經驗的每秒・每分・每時速率（全程累計平均 + 離群值過濾）
