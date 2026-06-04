@@ -1,4 +1,4 @@
-# TBH 效率計算機（Lite 版）
+# TBH 效率計算機
 
 *[English below ↓](#tbh-efficiency-calculator-lite)*
 
@@ -66,7 +66,7 @@ python tbh_calc.pyw
 
 <br>
 
-# TBH Efficiency Calculator (Lite)
+# TBH Efficiency Calculator
 
 An idle-efficiency calculator for the Steam game **TBH: Task Bar Hero**.
 
