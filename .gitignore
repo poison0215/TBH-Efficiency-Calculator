@@ -1,0 +1,14 @@
+# 打包輸出
+build/
+dist/
+*.spec
+
+# Python
+__pycache__/
+*.pyc
+
+# 執行時產生的設定/資料/截圖
+tbh_config.json
+tbh_compare.json
+tbh_*_raw.png
+tbh_*_ocr.png
