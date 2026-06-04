@@ -7,7 +7,7 @@
 透過螢幕 OCR 即時讀取金幣與經驗，計算每秒/分鐘/小時的產出速率，
 方便比較不同關卡的掛機效率、估算升級時間。
 
-> **Lite 版**：只用畫面 OCR 截圖讀取數值，**不讀取遊戲記憶體、不自動點擊、不做任何修改**，純屬外部觀察工具。
+> **無侵入**：只用畫面 OCR 截圖讀取數值，**不讀取遊戲記憶體、不自動點擊、不做任何修改**，純屬外部觀察工具。
 
 ## ⬇️ 下載
 
@@ -74,7 +74,7 @@ Reads Gold and EXP in real time via on-screen OCR, computes per-second /
 minute / hour output rates — handy for comparing the efficiency of
 different stages and estimating time to level up.
 
-> **Lite version**: reads values via on-screen OCR only. It does **NOT read
+> **NOT read**: reads values via on-screen OCR only. It does **NOT read
 > game memory, does NOT auto-click, and makes NO modifications** — purely an
 > external observation tool.
 
