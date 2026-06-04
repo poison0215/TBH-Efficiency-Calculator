@@ -1,5 +1,7 @@
 # TBH 效率計算機（Lite 版）
 
+*[English below ↓](#tbh-efficiency-calculator-lite)*
+
 給 Steam 遊戲 **TBH: Task Bar Hero（塔斯克巴·英雄）** 用的掛機效率計算工具。
 
 透過螢幕 OCR 即時讀取金幣與經驗，計算每秒/分鐘/小時的產出速率，
@@ -33,7 +35,7 @@
 - **關卡比較**：保存各關卡數據、排序比較，自動標示最佳效率
 - **自動保存**：設定監測時間，到時自動存入比較表
 - **區域設定**：拖曳框選金幣/經驗位置，即時 OCR 預覽
-- **雙語介面**：中文 / English，右上角按鈕即時切換（Bilingual UI, switchable）
+- **雙語介面**：中文 / English，右上角按鈕即時切換
 
 ## 需求
 
@@ -57,3 +59,72 @@ python tbh_calc.pyw
 ## 授權
 
 個人用途，僅供學習參考。
+
+<br>
+
+---
+
+<br>
+
+# TBH Efficiency Calculator (Lite)
+
+An idle-efficiency calculator for the Steam game **TBH: Task Bar Hero**.
+
+Reads Gold and EXP in real time via on-screen OCR, computes per-second /
+minute / hour output rates — handy for comparing the efficiency of
+different stages and estimating time to level up.
+
+> **Lite version**: reads values via on-screen OCR only. It does **NOT read
+> game memory, does NOT auto-click, and makes NO modifications** — purely an
+> external observation tool.
+
+## ⬇️ Download
+
+**[👉 Download the latest exe (Releases)](https://github.com/poison0215/TBH-Efficiency-Calculator/releases/latest)**
+
+Download `TBH-Efficiency-Calculator-vX.X.X.zip` → unzip → run `TBH效率計算機.exe`
+(Tesseract is bundled, **no Python or anything else needed**).
+
+### ⚠️ Antivirus may flag it (false positive)
+
+This app is packaged with PyInstaller, which **Windows Defender / antivirus
+may falsely flag as a virus**. This is a common **false positive** for
+PyInstaller apps. The tool contains no malware and the source is fully open.
+
+If blocked:
+
+- **Windows SmartScreen** "unknown publisher" → click **More info** → **Run anyway**
+- **Windows Defender** quarantine → "Virus & threat protection" → "Protection history" → **Allow**
+- If unsure, build it yourself from source via `build.bat`, or run `python tbh_calc.pyw`
+
+## Features
+
+- **Live monitor**: Gold / EXP rate per second・minute・hour (whole-session average + outlier filtering)
+- **Level progress**: progress bar + estimated time to level up
+- **Stage comparison**: save & sort stage data, auto-highlight the best
+- **Auto-save**: set a duration, auto-save to the table when time is up
+- **Region setup**: drag-select Gold/EXP areas with live OCR preview
+- **Bilingual UI**: 中文 / English, toggle instantly via the top-right button
+
+## Requirements
+
+- Windows
+- Python 3.10+ (if running from source)
+- Packages: `pip install -r requirements.txt`
+- [Tesseract OCR](https://github.com/UB-Mannheim/tesseract/wiki)
+
+## Usage
+
+Run from source:
+
+```
+python tbh_calc.pyw
+```
+
+Or use `build.bat` to package a standalone build (Tesseract bundled, no install needed for others).
+
+See `使用說明.txt` for detailed steps (bilingual).
+
+## License
+
+Personal use, for learning reference only.
