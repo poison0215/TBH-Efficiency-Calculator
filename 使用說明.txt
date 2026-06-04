@@ -30,3 +30,40 @@
 不做任何自動點擊或修改，純屬外部觀察的效率計算工具。
 監控時請保持遊戲畫面可見。
 ========================================
+
+
+
+========================================
+ TBH Task Bar Hero - Efficiency Calculator (Lite)
+========================================
+
+[How to Launch]
+Double-click "TBH效率計算機.exe". No Python installation needed.
+(Tesseract OCR is bundled in the folder, no separate install required.)
+
+[First-time Setup]
+1. Launch the game TaskBarHero first
+2. Open this app -> go to the "區域設定" (Region Setup) tab
+3. Click "選取區域" (Select Region) and drag a box over the
+   "Gold" and "EXP" numbers on the game screen
+   - For EXP, box the full "current EXP / required EXP" text
+4. The OCR-read value shows below in real time; confirm it reads correctly
+5. Go back to the "即時監控" (Live Monitor) tab -> click "開始監控" (Start)
+
+[Live Monitor]
+- Gold & EXP rate per second / minute / hour (whole-session average)
+- Level-up progress bar and estimated time to level up
+- Optional auto-save: automatically save & stop after N minutes
+
+[Stage Comparison]
+- After monitoring a while, enter a stage name -> "保存至比較表" (Save)
+- Compare which stage is most efficient in the "關卡比較" tab
+- Click column headers to sort
+
+========================================
+[Notes]
+This Lite version only reads values via on-screen OCR. It does NOT
+read game memory, does NOT auto-click, and makes NO modifications -
+it is purely an external observation / efficiency calculator tool.
+Keep the game screen visible while monitoring.
+========================================
