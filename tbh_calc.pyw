@@ -309,7 +309,8 @@ class RegionPicker(tk.Toplevel):
         self.canvas.create_rectangle(0, 0, pw, ph,
                                      fill="black", stipple="gray50", outline="")
         self.canvas.create_text(pw // 2, 60,
-                                text="拖曳選取區域，放開滑鼠確認　|　Esc 取消",
+                                text=master.L("拖曳選取區域，放開滑鼠確認　|　Esc 取消",
+                                              "Drag to select, release to confirm  |  Esc to cancel"),
                                 fill="white", font=("Microsoft JhengHei UI", 20))
 
         # 遊戲視窗實體座標
@@ -398,20 +399,51 @@ class TBHApp(tk.Tk):
         self._live_exp  = None
         self._exp_required = None   # 升級所需經驗（OCR 的 / 後數字）
 
+        # 語言（zh / en），可在程式中切換
+        self.lang = cfg.get("lang", "zh")
+        # 跨重建保留的輸入變數
+        self.var_stage_name = tk.StringVar()
+        self.var_autosave = tk.BooleanVar(value=False)
+        self.var_autosave_min = tk.StringVar(value="5")
+
         if DEPS_OK:
             pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
 
         self._build_ui()
         self._render_compare()   # 載入已儲存的比較資料
-        self._refresh_windows()
 
         # 區域設定的即時 OCR 預覽（背景執行）
         if DEPS_OK:
             threading.Thread(target=self._region_preview_loop, daemon=True).start()
 
+    # ── 語言 ─────────────────────────────────────────────────────
+
+    def L(self, zh, en):
+        """依目前語言回傳中文或英文"""
+        return en if self.lang == "en" else zh
+
+    def _switch_lang(self):
+        self.lang = "en" if self.lang == "zh" else "zh"
+        cfg = load_config()
+        cfg["lang"] = self.lang
+        save_config(cfg)
+        self._rebuild_ui()
+
+    def _rebuild_ui(self):
+        # 銷毀所有子元件後重建（輸入變數與資料都保存在 self，不受影響）
+        for w in self.winfo_children():
+            w.destroy()
+        self._build_ui()
+        self._render_compare()
+        # 還原監控按鈕狀態
+        if self.tracking:
+            self.btn_track.config(text=self.L("⏹ 停止監控", "⏹ Stop"),
+                                  bg="#a03020", fg="#e8d5a0")
+
     # ── UI ──────────────────────────────────────────────────────
 
     def _build_ui(self):
+        self.title(self.L("TBH 效率計算機", "TBH Efficiency Calculator"))
         style = ttk.Style(self)
         style.theme_use("clam")
         style.configure(".", background="#1a1208", foreground="#e8d5a0",
@@ -430,8 +462,15 @@ class TBHApp(tk.Tk):
         style.configure("Treeview.Heading", background="#3a2a08",
                         foreground="#f5c842", font=FONT)
 
-        tk.Label(self, text="⚔ TBH 塔斯克巴·英雄 效率計算機",
-                 bg="#1a1208", fg="#f5c842", font=FONT_TL).pack(pady=(12, 4))
+        # 標題列 + 語言切換
+        top = tk.Frame(self, bg="#1a1208")
+        top.pack(fill="x", pady=(12, 4))
+        tk.Label(top, text=self.L("⚔ TBH 塔斯克巴·英雄 效率計算機",
+                                  "⚔ TBH Task Bar Hero - Efficiency Calc"),
+                 bg="#1a1208", fg="#f5c842", font=FONT_TL).pack(side="left", padx=(12, 0))
+        tk.Button(top, text=self.L("EN", "中"), command=self._switch_lang,
+                  bg="#3a2a08", fg="#f5c842", font=FONT_SM,
+                  relief="flat", padx=8, pady=2).pack(side="right", padx=12)
 
         nb = ttk.Notebook(self)
         nb.pack(fill="both", expand=True, padx=12, pady=4)
@@ -439,13 +478,15 @@ class TBHApp(tk.Tk):
         self._tab_compare(nb)
         self._tab_region(nb)
 
-        self.lbl_status = ttk.Label(self, text="尚未連接遊戲視窗",
+        self.lbl_status = ttk.Label(self, text=self.L("尚未連接遊戲視窗",
+                                                      "Game window not connected"),
                                     style="Status.TLabel")
         self.lbl_status.pack(pady=(2, 6))
+        self._refresh_windows()
 
     def _tab_monitor(self, nb):
         frm = ttk.Frame(nb)
-        nb.add(frm, text=" 即時監控 ")
+        nb.add(frm, text=self.L(" 即時監控 ", " Monitor "))
 
         box = tk.Frame(frm, bg="#2a1e0e", padx=16, pady=12)
         box.pack(fill="x", padx=10, pady=8)
@@ -454,7 +495,7 @@ class TBHApp(tk.Tk):
             f = tk.Frame(parent, bg="#2a1e0e")
             f.pack(fill="x", pady=2)
             tk.Label(f, text=label, bg="#2a1e0e", fg="#9a8060",
-                     font=FONT, width=14, anchor="w").pack(side="left")
+                     font=FONT, width=16, anchor="w").pack(side="left")
             lbl = tk.Label(f, text="—", bg="#2a1e0e",
                            fg="#f5c842", font=FONT_LG)
             lbl.pack(side="left")
@@ -463,20 +504,20 @@ class TBHApp(tk.Tk):
                          fg="#6a5030", font=FONT_SM).pack(side="left", padx=2)
             setattr(self, attr, lbl)
 
-        row(box, "紀錄時間",   "lbl_timer")
-        row(box, "目前金幣",   "lbl_gold")
-        row(box, "金幣 / 秒",  "lbl_gps", "/s")
-        row(box, "金幣 / 分鐘", "lbl_gpm", "/min")
-        row(box, "金幣 / 小時", "lbl_gph", "/hr")
-        row(box, "目前經驗",   "lbl_exp")
-        row(box, "升級需求",   "lbl_exp_req")
-        row(box, "預計升級",   "lbl_exp_eta")
+        row(box, self.L("紀錄時間", "Elapsed"),     "lbl_timer")
+        row(box, self.L("目前金幣", "Gold"),         "lbl_gold")
+        row(box, self.L("金幣 / 秒", "Gold / sec"),  "lbl_gps", "/s")
+        row(box, self.L("金幣 / 分鐘", "Gold / min"), "lbl_gpm", "/min")
+        row(box, self.L("金幣 / 小時", "Gold / hr"),  "lbl_gph", "/hr")
+        row(box, self.L("目前經驗", "EXP"),          "lbl_exp")
+        row(box, self.L("升級需求", "EXP needed"),   "lbl_exp_req")
+        row(box, self.L("預計升級", "Time to level"), "lbl_exp_eta")
 
         # 經驗進度條
         bar_wrap = tk.Frame(box, bg="#2a1e0e")
         bar_wrap.pack(fill="x", pady=(6, 2))
-        tk.Label(bar_wrap, text="升級進度", bg="#2a1e0e", fg="#9a8060",
-                 font=FONT, width=14, anchor="w").pack(side="left")
+        tk.Label(bar_wrap, text=self.L("升級進度", "Progress"), bg="#2a1e0e", fg="#9a8060",
+                 font=FONT, width=16, anchor="w").pack(side="left")
         self.exp_bar = tk.Canvas(bar_wrap, height=18, bg="#0e0c06",
                                  highlightthickness=1, highlightbackground="#5a3e1a")
         self.exp_bar.pack(side="left", fill="x", expand=True, padx=(0, 4))
@@ -487,21 +528,21 @@ class TBHApp(tk.Tk):
         self.exp_bar.bind("<Configure>", self._redraw_exp_bar)
         self._exp_pct = 0.0
 
-        row(box, "經驗 / 秒",  "lbl_eps", "/s")
-        row(box, "經驗 / 分鐘", "lbl_epm", "/min")
-        row(box, "經驗 / 小時", "lbl_eph", "/hr")
+        row(box, self.L("經驗 / 秒", "EXP / sec"),  "lbl_eps", "/s")
+        row(box, self.L("經驗 / 分鐘", "EXP / min"), "lbl_epm", "/min")
+        row(box, self.L("經驗 / 小時", "EXP / hr"),  "lbl_eph", "/hr")
 
         # 監控控制按鈕
         frm_btn = tk.Frame(frm, bg="#1a1208")
         frm_btn.pack(pady=(6, 4))
 
-        self.btn_track = tk.Button(frm_btn, text="▶ 開始監控",
+        self.btn_track = tk.Button(frm_btn, text=self.L("▶ 開始監控", "▶ Start"),
                                    command=self._toggle_tracking,
                                    bg="#c89a00", fg="#1a1208",
                                    font=FONT, relief="flat", padx=16, pady=6)
         self.btn_track.pack(side="left", padx=4)
 
-        tk.Button(frm_btn, text="重新計算", command=self._reset_history,
+        tk.Button(frm_btn, text=self.L("重新計算", "Reset"), command=self._reset_history,
                   bg="#3a1a2a", fg="#e8a0d0", font=FONT,
                   relief="flat", padx=10, pady=6).pack(side="left", padx=4)
 
@@ -509,13 +550,12 @@ class TBHApp(tk.Tk):
         frm_save = tk.Frame(frm, bg="#2a1e0e", padx=12, pady=8)
         frm_save.pack(fill="x", padx=10, pady=(0, 6))
 
-        tk.Label(frm_save, text="關卡名稱：", bg="#2a1e0e",
+        tk.Label(frm_save, text=self.L("關卡名稱：", "Stage: "), bg="#2a1e0e",
                  fg="#b09060", font=FONT).pack(side="left")
-        self.var_stage_name = tk.StringVar()
         tk.Entry(frm_save, textvariable=self.var_stage_name,
                  bg="#1a1208", fg="#e8d5a0", insertbackground="#e8d5a0",
                  relief="flat", font=FONT, width=10).pack(side="left", padx=6)
-        tk.Button(frm_save, text="保存至比較表",
+        tk.Button(frm_save, text=self.L("保存至比較表", "Save to table"),
                   command=self._add_to_compare,
                   bg="#204080", fg="#e8d5a0", font=FONT,
                   relief="flat", padx=10, pady=4).pack(side="left")
@@ -523,20 +563,19 @@ class TBHApp(tk.Tk):
         # 自動保存設定
         frm_auto = tk.Frame(frm, bg="#2a1e0e", padx=12, pady=6)
         frm_auto.pack(fill="x", padx=10, pady=(0, 6))
-        self.var_autosave = tk.BooleanVar(value=False)
-        tk.Checkbutton(frm_auto, text="自動保存：監測", variable=self.var_autosave,
+        tk.Checkbutton(frm_auto, text=self.L("自動保存：監測", "Auto-save after"),
+                       variable=self.var_autosave,
                        bg="#2a1e0e", fg="#b09060", font=FONT,
                        selectcolor="#1a1208", activebackground="#2a1e0e",
                        activeforeground="#f5c842",
                        highlightthickness=0, bd=0).pack(side="left")
-        self.var_autosave_min = tk.StringVar(value="5")
         tk.Entry(frm_auto, textvariable=self.var_autosave_min,
                  bg="#1a1208", fg="#e8d5a0", insertbackground="#e8d5a0",
                  relief="flat", font=FONT, width=5).pack(side="left", padx=4)
-        tk.Label(frm_auto, text="分鐘後自動保存並停止", bg="#2a1e0e",
-                 fg="#6a5030", font=FONT_SM).pack(side="left")
+        tk.Label(frm_auto, text=self.L("分鐘後自動保存並停止", "min, then save & stop"),
+                 bg="#2a1e0e", fg="#6a5030", font=FONT_SM).pack(side="left")
 
-        tk.Label(frm, text="最近取樣紀錄", bg="#1a1208",
+        tk.Label(frm, text=self.L("最近取樣紀錄", "Recent samples"), bg="#1a1208",
                  fg="#7a6040", font=FONT_SM).pack(anchor="w", padx=12)
         self.txt_log = tk.Text(frm, height=6, bg="#0e0c06", fg="#7a6040",
                                font=("Microsoft JhengHei UI", 8), relief="flat",
@@ -545,13 +584,15 @@ class TBHApp(tk.Tk):
 
     def _tab_compare(self, nb):
         frm = ttk.Frame(nb)
-        nb.add(frm, text=" 關卡比較 ")
+        nb.add(frm, text=self.L(" 關卡比較 ", " Compare "))
 
         cols = ("stage", "gps", "gph", "eps", "eph", "dur")
         self.tree = ttk.Treeview(frm, columns=cols, show="headings", height=10)
         self._compare_heads = {
-            "stage": "關卡", "gps": "金幣/秒", "gph": "金幣/時",
-            "eps": "經驗/秒", "eph": "經驗/時", "dur": "時間",
+            "stage": self.L("關卡", "Stage"),
+            "gps": self.L("金幣/秒", "Gold/s"), "gph": self.L("金幣/時", "Gold/h"),
+            "eps": self.L("經驗/秒", "EXP/s"), "eph": self.L("經驗/時", "EXP/h"),
+            "dur": self.L("時間", "Time"),
         }
         for cid, w in [("stage", 60), ("gps", 80), ("gph", 88),
                        ("eps", 80), ("eph", 88), ("dur", 64)]:
@@ -562,31 +603,33 @@ class TBHApp(tk.Tk):
         self.tree.tag_configure("best_e", foreground="#44aaee", background="#1a1208")
         self.tree.tag_configure("best_ge", foreground="#aaee44", background="#1a2a08")
         self.tree.pack(fill="both", expand=True, padx=10, pady=8)
-        tk.Button(frm, text="移除選取", command=self._remove_compare_row,
+        tk.Button(frm, text=self.L("移除選取", "Remove selected"),
+                  command=self._remove_compare_row,
                   bg="#6a1810", fg="#e8d5a0", relief="flat",
                   font=FONT, padx=10, pady=4).pack(pady=(0, 8))
 
     def _tab_region(self, nb):
         frm = ttk.Frame(nb)
-        nb.add(frm, text=" 區域設定 ")
+        nb.add(frm, text=self.L(" 區域設定 ", " Regions "))
 
-        tk.Label(frm, text="點擊按鈕，在遊戲畫面上拖曳選取對應區域",
+        tk.Label(frm, text=self.L("點擊按鈕，在遊戲畫面上拖曳選取對應區域",
+                                  "Click a button, then drag-select the area on the game screen"),
                  bg="#1a1208", fg="#b09060", font=FONT).pack(
                  anchor="w", padx=14, pady=(14, 10))
 
-        # 金幣區域
-        self._region_card(frm, "gold", "💰 金幣區域",
-                          "選取金幣數字顯示的位置",
+        self._region_card(frm, "gold", self.L("💰 金幣區域", "💰 Gold area"),
+                          self.L("選取金幣數字顯示的位置", "Box the gold number"),
                           lambda r: self._on_region_set("gold", r))
 
-        # 經驗區域
-        self._region_card(frm, "exp", "✨ 經驗區域",
-                          "選取經驗值數字顯示的位置",
+        self._region_card(frm, "exp", self.L("✨ 經驗區域", "✨ EXP area"),
+                          self.L("選取經驗值數字顯示的位置", "Box the EXP number"),
                           lambda r: self._on_region_set("exp", r))
 
         tk.Label(frm,
-                 text="提示：選取時請確保遊戲視窗完整可見，選取框盡量貼近數字。\n"
-                      "選取後可再次點擊按鈕重新選取。",
+                 text=self.L("提示：選取時請確保遊戲視窗完整可見，選取框盡量貼近數字。\n"
+                             "選取後可再次點擊按鈕重新選取。",
+                             "Tip: keep the game window fully visible; box tightly around\n"
+                             "the number. Click again to re-select."),
                  bg="#1a1208", fg="#6a5030",
                  font=FONT_SM, justify="left").pack(anchor="w", padx=14, pady=(8, 0))
 
@@ -614,13 +657,16 @@ class TBHApp(tk.Tk):
 
         def pick():
             if not self.hwnd:
-                messagebox.showwarning("提示", "請先選擇並偵測到遊戲視窗")
+                messagebox.showwarning(self.L("提示", "Notice"),
+                                       self.L("請先選擇並偵測到遊戲視窗",
+                                              "Detect the game window first"))
                 return
             self.after(200, lambda: RegionPicker(self, self.hwnd, callback))
 
         def test_capture():
             if not self.hwnd:
-                messagebox.showwarning("提示", "請先選擇遊戲視窗"); return
+                messagebox.showwarning(self.L("提示", "Notice"),
+                                       self.L("請先選擇遊戲視窗", "Detect the game window first")); return
             try:
                 img = capture_region(self.hwnd, self.regions[key])
                 img.save(os.path.join(BASE_DIR, f"tbh_{key}_raw.png"))
@@ -629,29 +675,33 @@ class TBHApp(tk.Tk):
 
                 if key == "exp":
                     cur, req, raw_text = ocr_exp_pair(img)
-                    parsed = (f"目前經驗：{int(cur):,}\n" if cur is not None else "目前經驗：讀取失敗\n") + \
-                             (f"升級需求：{int(req):,}" if req is not None else "升級需求：讀取失敗")
+                    parsed = (self.L(f"目前經驗：{int(cur):,}\n", f"EXP: {int(cur):,}\n")
+                              if cur is not None else self.L("目前經驗：讀取失敗\n", "EXP: failed\n")) + \
+                             (self.L(f"升級需求：{int(req):,}", f"EXP needed: {int(req):,}")
+                              if req is not None else self.L("升級需求：讀取失敗", "EXP needed: failed"))
                 else:
                     val, raw_text, _ = ocr_number_debug(img)
-                    parsed = f"解析數值：{int(val):,}" if val is not None else "解析數值：讀取失敗"
+                    parsed = (self.L(f"解析數值：{int(val):,}", f"Value: {int(val):,}")
+                              if val is not None else self.L("解析數值：讀取失敗", "Value: failed"))
 
                 messagebox.showinfo(
-                    "測試結果",
-                    f"OCR 原始文字：「{raw_text}」\n\n"
-                    f"{parsed}\n\n"
-                    f"原始截圖：tbh_{key}_raw.png\n"
-                    f"OCR預處理：tbh_{key}_ocr.png\n"
-                    f"（已儲存至程式資料夾）"
+                    self.L("測試結果", "Test result"),
+                    self.L(f"OCR 原始文字：「{raw_text}」\n\n", f"Raw OCR: \"{raw_text}\"\n\n")
+                    + f"{parsed}\n\n"
+                    + self.L(f"原始截圖：tbh_{key}_raw.png\n"
+                             f"OCR預處理：tbh_{key}_ocr.png\n（已儲存至程式資料夾）",
+                             f"Raw image: tbh_{key}_raw.png\n"
+                             f"Processed: tbh_{key}_ocr.png\n(saved to the app folder)")
                 )
             except Exception as e:
-                messagebox.showerror("錯誤", str(e))
+                messagebox.showerror(self.L("錯誤", "Error"), str(e))
 
         btn_frame = tk.Frame(box, bg="#2a1e0e")
         btn_frame.grid(row=0, column=1, rowspan=4, padx=(20, 0), sticky="e")
-        tk.Button(btn_frame, text="選取區域", command=pick,
+        tk.Button(btn_frame, text=self.L("選取區域", "Select"), command=pick,
                   bg="#c89a00", fg="#1a1208", font=FONT,
                   relief="flat", padx=12, pady=4).pack(pady=(0, 4))
-        tk.Button(btn_frame, text="測試截圖", command=test_capture,
+        tk.Button(btn_frame, text=self.L("測試截圖", "Test"), command=test_capture,
                   bg="#2a3a18", fg="#aaee44", font=FONT_SM,
                   relief="flat", padx=8, pady=2).pack()
         box.columnconfigure(0, weight=1)
@@ -674,7 +724,7 @@ class TBHApp(tk.Tk):
         cfg = load_config()
         cfg["regions"] = self.regions
         save_config(cfg)
-        self._set_status(f"{key} 區域已更新")
+        self._set_status(self.L(f"{key} 區域已更新", f"{key} region updated"))
 
     def _region_preview_loop(self):
         """每 1.5 秒更新區域設定的即時 OCR 預覽"""
@@ -707,16 +757,18 @@ class TBHApp(tk.Tk):
         lbl = getattr(self, f"_lbl_preview_{key}", None)
         if lbl is None:
             return
+        retry = self.L("OCR：請重新擷取", "OCR: re-select region")
         if key == "exp":
             if val is None:
-                lbl.config(text="OCR：請重新擷取", fg="#e87040")
+                lbl.config(text=retry, fg="#e87040")
             elif req is None:
-                lbl.config(text=f"OCR：{int(val):,}（升級需求請重新擷取）", fg="#e8c040")
+                lbl.config(text=self.L(f"OCR：{int(val):,}（升級需求請重新擷取）",
+                                       f"OCR: {int(val):,} (re-select for EXP needed)"), fg="#e8c040")
             else:
                 lbl.config(text=f"OCR：{int(val):,} / {int(req):,}", fg="#aaee44")
         else:
             if val is None:
-                lbl.config(text="OCR：請重新擷取", fg="#e87040")
+                lbl.config(text=retry, fg="#e87040")
             else:
                 lbl.config(text=f"OCR：{int(val):,}", fg="#aaee44")
 
@@ -724,36 +776,39 @@ class TBHApp(tk.Tk):
 
     def _refresh_windows(self):
         if not DEPS_OK:
-            self._set_status("缺少套件，請執行安裝")
+            self._set_status(self.L("缺少套件，請執行安裝", "Missing packages"))
             return
         wins = find_game_window()
         if wins:
             self.hwnd = wins[0][0]
-            self._set_status(f"已偵測到遊戲：{wins[0][1]}")
+            self._set_status(self.L(f"已偵測到遊戲：{wins[0][1]}", f"Game detected: {wins[0][1]}"))
         else:
             self.hwnd = None
-            self._set_status("找不到遊戲視窗，請先開啟遊戲")
+            self._set_status(self.L("找不到遊戲視窗，請先開啟遊戲",
+                                    "Game window not found, launch the game first"))
 
     # ── 監控 ────────────────────────────────────────────────────
 
     def _toggle_tracking(self):
         if self.tracking:
             self.tracking = False
-            self.btn_track.config(text="▶ 開始監控", bg="#c89a00", fg="#1a1208")
+            self.btn_track.config(text=self.L("▶ 開始監控", "▶ Start"), bg="#c89a00", fg="#1a1208")
             if self._timer_job:
                 self.after_cancel(self._timer_job)
                 self._timer_job = None
-            self._set_status("監控已停止")
+            self._set_status(self.L("監控已停止", "Monitoring stopped"))
         else:
             if not self.hwnd:
-                messagebox.showwarning("提示", "請先選擇遊戲視窗"); return
+                messagebox.showwarning(self.L("提示", "Notice"),
+                                       self.L("請先選擇遊戲視窗", "Detect the game window first")); return
             if not DEPS_OK:
-                messagebox.showerror("錯誤", "缺少必要套件"); return
+                messagebox.showerror(self.L("錯誤", "Error"),
+                                     self.L("缺少必要套件", "Missing packages")); return
             self.tracking = True
             self._track_start = time.time()
             self._reset_accumulators()
-            self.btn_track.config(text="⏹ 停止監控", bg="#a03020", fg="#e8d5a0")
-            self._set_status("監控中…")
+            self.btn_track.config(text=self.L("⏹ 停止監控", "⏹ Stop"), bg="#a03020", fg="#e8d5a0")
+            self._set_status(self.L("監控中…", "Monitoring…"))
             self._tick_timer()
             threading.Thread(target=self._track_loop, daemon=True).start()
 
@@ -773,7 +828,8 @@ class TBHApp(tk.Tk):
             if mins > 0 and elapsed >= mins * 60:
                 self._add_to_compare()
                 self._toggle_tracking()   # 停止監控
-                self._set_status(f"已監測 {mins:g} 分鐘，自動保存並停止")
+                self._set_status(self.L(f"已監測 {mins:g} 分鐘，自動保存並停止",
+                                        f"Monitored {mins:g} min, auto-saved & stopped"))
                 return
         self._timer_job = self.after(1000, self._tick_timer)
 
@@ -822,7 +878,7 @@ class TBHApp(tk.Tk):
             img_gold = capture_region(self.hwnd, self.regions["gold"])
             gold, gold_raw, _ = ocr_number_debug(img_gold)
         except Exception as e:
-            self.after(0, self._set_status, f"截圖失敗(金幣)：{e}")
+            self.after(0, self._set_status, self.L(f"截圖失敗(金幣)：{e}", f"Capture failed (gold): {e}"))
 
         # 經驗：OCR 截圖（同時讀升級需求）
         try:
@@ -836,7 +892,7 @@ class TBHApp(tk.Tk):
                     (self._exp_required and exp > self._exp_required * 1.02)):
                 exp = None
         except Exception as e:
-            self.after(0, self._set_status, f"截圖失敗(經驗)：{e}")
+            self.after(0, self._set_status, self.L(f"截圖失敗(經驗)：{e}", f"Capture failed (EXP): {e}"))
 
         now = time.time()
         gps, gpm, gph = self._accumulate("gold", gold, now)
@@ -846,11 +902,12 @@ class TBHApp(tk.Tk):
         # 顯示解析值，若為 None 則顯示 OCR 原始文字供除錯
         g_disp = fmt_num(gold) if gold is not None else f"?({gold_raw.strip()!r})"
         e_disp = fmt_num(exp)  if exp  is not None else f"?({exp_raw.strip()!r})"
-        log_line = f"[{ts}] 金幣={g_disp}  經驗={e_disp}"
+        gl, el = self.L(("金幣", "經驗"), ("Gold", "EXP"))
+        log_line = f"[{ts}] {gl}={g_disp}  {el}={e_disp}"
         if gps is not None:
-            log_line += f"  金{fmt_num(gps)}/s"
+            log_line += f"  {gl[0]}{fmt_num(gps)}/s"
         if eps is not None:
-            log_line += f"  經{fmt_num(eps)}/s"
+            log_line += f"  {el[0]}{fmt_num(eps)}/s"
 
         self.after(0, self._update_monitor, gold, exp, gps, gpm, gph, eps, epm, eph, log_line)
 
@@ -881,7 +938,7 @@ class TBHApp(tk.Tk):
             if eps and eps > 0 and remain > 0:
                 self.lbl_exp_eta.config(text=self._fmt_duration(remain / eps))
             elif remain <= 0:
-                self.lbl_exp_eta.config(text="可升級")
+                self.lbl_exp_eta.config(text=self.L("可升級", "Ready!"))
             else:
                 self.lbl_exp_eta.config(text="—")
         else:
@@ -898,9 +955,9 @@ class TBHApp(tk.Tk):
         sec = int(sec)
         h, r = divmod(sec, 3600)
         m, s = divmod(r, 60)
-        if h > 0: return f"{h} 小時 {m} 分"
-        if m > 0: return f"{m} 分 {s} 秒"
-        return f"{s} 秒"
+        if h > 0: return self.L(f"{h} 小時 {m} 分", f"{h}h {m}m")
+        if m > 0: return self.L(f"{m} 分 {s} 秒", f"{m}m {s}s")
+        return self.L(f"{s} 秒", f"{s}s")
 
     def _redraw_exp_bar(self, event=None):
         if not hasattr(self, "exp_bar"):
@@ -913,11 +970,13 @@ class TBHApp(tk.Tk):
         self.exp_bar.itemconfig(self.exp_bar_text, text=f"{self._exp_pct:.1f}%")
 
     def _add_to_compare(self):
-        stage = self.var_stage_name.get().strip() or "未命名"
+        stage = self.var_stage_name.get().strip() or self.L("未命名", "Unnamed")
         gps = getattr(self, "_last_gps", None)
         eps = getattr(self, "_last_eps", None)
         if gps is None and eps is None:
-            messagebox.showinfo("提示", "尚無數據，請先監控至少 2 秒"); return
+            messagebox.showinfo(self.L("提示", "Notice"),
+                                self.L("尚無數據，請先監控至少 2 秒",
+                                       "No data yet, monitor for at least 2s")); return
         duration = int(time.time() - self._track_start) if self._track_start else 0
         self._insert_compare(stage, gps, eps, duration)
 
@@ -1031,7 +1090,7 @@ class TBHApp(tk.Tk):
         self.lbl_timer.config(text="00:00:00")
         self._exp_pct = 0.0
         self._redraw_exp_bar()
-        self._set_status("已清除紀錄，重新開始計算")
+        self._set_status(self.L("已清除紀錄，重新開始計算", "Cleared, restarting calculation"))
 
     def _set_status(self, msg):
         self.lbl_status.config(text=msg)
