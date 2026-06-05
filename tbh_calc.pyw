@@ -842,31 +842,42 @@ class TBHApp(tk.Tk):
         self._hist = {"gold": [], "exp": []}
 
     def _accumulate(self, key, val, now):
-        """全程平均（含 IQR 離群過濾）：對整段紀錄的每秒增量取平均"""
+        """全程平均：先剔除 OCR 瞬間誤讀（暴衝後又跌回的單點），再對每秒增量取平均。
+        真實 BOSS 大獎（漲了就維持、不會跌回）會被保留。"""
         h = self._hist[key]
         if val is not None:
             h.append((now, val))
         if len(h) < 2:
             return None, None, None
-        # 每段的每秒增量（忽略負值：換關/升級重置）
+
+        # 清理：丟棄「局部尖峰/低谷」單點 —— OCR 誤讀會一升一降回到原線，
+        # 偏離量大於前後淨變化即判定為誤讀；BOSS 是單調上升不會被誤刪。
+        pts = [h[0]]
+        n = len(h)
+        i = 1
+        while i < n:
+            if i < n - 1:
+                prev_v = pts[-1][1]
+                cur_v  = h[i][1]
+                next_v = h[i + 1][1]
+                d1 = cur_v - prev_v
+                d2 = next_v - cur_v
+                if d1 * d2 < 0 and abs(d1) > max(abs(next_v - prev_v), 1):
+                    i += 1          # 此點是誤讀暴衝/塌陷，跳過不納入
+                    continue
+            pts.append(h[i])
+            i += 1
+
+        # 由清理後序列計算每秒增量（忽略負值：花費/換關/誤讀低值）
         rates = []
-        for i in range(1, len(h)):
-            dt = h[i][0] - h[i-1][0]
-            dv = h[i][1] - h[i-1][1]
+        for j in range(1, len(pts)):
+            dt = pts[j][0] - pts[j - 1][0]
+            dv = pts[j][1] - pts[j - 1][1]
             if dt > 0 and dv >= 0:
                 rates.append(dv / dt)
         if not rates:
             return None, None, None
-        # IQR 離群值過濾：剔除暴衝的垃圾讀值
-        s = sorted(rates)
-        if len(s) >= 4:
-            q1 = s[len(s) // 4]
-            q3 = s[len(s) * 3 // 4]
-            limit = q3 + (q3 - q1) * 3
-            s = [r for r in s if r <= limit]
-        if not s:
-            return None, None, None
-        ps = sum(s) / len(s)
+        ps = sum(rates) / len(rates)
         return ps, ps * 60, ps * 3600
 
     def _do_snapshot(self):
